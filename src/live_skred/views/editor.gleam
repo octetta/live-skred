@@ -422,227 +422,220 @@ pub fn view_repl_bar(model: Model) -> Element(Msg) {
 
 /// Renders the interactive Skode Syntax, Help, and Quick Reference modal.
 pub fn view_help_modal() -> Element(Msg) {
-  html.div([class("modal-backdrop"), event.on_click(types.ToggleHelp)], [
-    html.div(
-      [
-        class("modal-content help-modal"),
-        // Stop click propagation on the modal card itself
-        event.stop_propagation(event.on_click(types.SetBpm(120.0))),
-      ],
-      [
-        html.div([class("modal-header")], [
-          html.h2([], [text("📖 Skode Syntax, Drum Map & Live-Sync Cheat Sheet")]),
-          html.button(
-            [class("btn btn-sm btn-close"), event.on_click(types.ToggleHelp)],
-            [text("✕ Close")],
-          ),
-        ]),
-        html.div([class("modal-body help-body")], [
-          // Section 1: Drum Samples Map
-          html.section([class("help-section")], [
-            html.h3([], [
-              text("🥁 Built-in One-Shot Drum Waves (Slots 82–99 at f440 / n69)"),
+  html.div([class("modal-backdrop")], [
+    html.div([class("modal-content help-modal")], [
+      html.div([class("modal-header")], [
+        html.h2([], [text("📖 Skode Syntax, Drum Map & Live-Sync Cheat Sheet")]),
+        html.button(
+          [class("btn btn-sm btn-close"), event.on_click(types.ToggleHelp)],
+          [text("✕ Close")],
+        ),
+      ]),
+      html.div([class("modal-body help-body")], [
+        // Section 1: Drum Samples Map
+        html.section([class("help-section")], [
+          html.h3([], [
+            text("🥁 Built-in One-Shot Drum Waves (Slots 82–99 at f440 / n69)"),
+          ]),
+          html.p([class("help-desc")], [
+            text(
+              "Self-contained 44.1 kHz one-shot models synthesized via K-synth. Play at standard frequency f440 (or n69) with loop B0:",
+            ),
+          ]),
+          html.table([class("help-table")], [
+            html.thead([], [
+              html.tr([], [
+                html.th([], [text("Wave Slot")]),
+                html.th([], [text("Instrument")]),
+                html.th([], [text("Usage Example")]),
+              ]),
             ]),
-            html.p([class("help-desc")], [
+            html.tbody([], [
+              html.tr([], [
+                html.td([], [text("w82")]),
+                html.td([], [text("Kick Drum (300ms)")]),
+                html.td([], [text("v0 w82 f440 a3 B0 l1 ; +1.0 v0 l1")]),
+              ]),
+              html.tr([], [
+                html.td([], [text("w83")]),
+                html.td([], [text("Snare (280ms)")]),
+                html.td([], [text("v1 w83 f440 a0 B0 l1")]),
+              ]),
+              html.tr([], [
+                html.td([], [text("w84")]),
+                html.td([], [text("Closed Hat (200ms)")]),
+                html.td([], [text("v1 w84 f440 a-3 B0 ; +0.5 v1 l1")]),
+              ]),
+              html.tr([], [
+                html.td([], [text("w85")]),
+                html.td([], [text("Open Hat (750ms)")]),
+                html.td([], [text("v1 w85 f440 a-3 B0 ; +0.75 v1 l1")]),
+              ]),
+              html.tr([], [
+                html.td([], [text("w86")]),
+                html.td([], [text("Hand Clap (200ms)")]),
+                html.td([], [
+                  text("v2 w86 f440 a-1 B0 ; +1.0 v2 l1 ; +3.0 v2 l1"),
+                ]),
+              ]),
+              html.tr([], [
+                html.td([], [text("w87")]),
+                html.td([], [text("Rimshot (60ms)")]),
+                html.td([], [text("v2 w87 f440 a0 B0 l1")]),
+              ]),
+              html.tr([], [
+                html.td([], [text("w88-w93")]),
+                html.td([], [text("Toms (lo, mid, hi)")]),
+                html.td([], [text("v3 w88 f440 a0 B0 l1")]),
+              ]),
+              html.tr([], [
+                html.td([], [text("w94-w95")]),
+                html.td([], [text("Crash & Ride Cymbals")]),
+                html.td([], [text("v4 w94 f440 a-3 B0 l1")]),
+              ]),
+              html.tr([], [
+                html.td([], [text("w96")]),
+                html.td([], [text("808 Cowbell (900ms)")]),
+                html.td([], [
+                  text("v5 w96 f440 a-2 B0 ; +0.5 v5 l1 ; +1.0 v5 l1"),
+                ]),
+              ]),
+            ]),
+          ]),
+        ]),
+
+        // Section 2: Defers & Quantized Sync
+        html.section([class("help-section")], [
+          html.h3([], [text("⏱ How Defers (+) & Quantized Clock Sync Work")]),
+          html.ul([class("help-list")], [
+            html.li([], [
+              html.strong([], [text("+delay (Tempo-Relative): ")]),
               text(
-                "Self-contained 44.1 kHz one-shot models synthesized via K-synth. Play at standard frequency f440 (or n69) with loop B0:",
+                "Multiplies delay by 1 beat. +1.0 = 1 beat (quarter note), +0.5 = 8th note, +0.25 = 16th note, +4.0 = 1 bar (4 beats).",
               ),
             ]),
-            html.table([class("help-table")], [
-              html.thead([], [
-                html.tr([], [
-                  html.th([], [text("Wave Slot")]),
-                  html.th([], [text("Instrument")]),
-                  html.th([], [text("Usage Example")]),
-                ]),
-              ]),
-              html.tbody([], [
-                html.tr([], [
-                  html.td([], [text("w82")]),
-                  html.td([], [text("Kick Drum (300ms)")]),
-                  html.td([], [text("v0 w82 f440 a3 B0 l1 ; +1.0 v0 l1")]),
-                ]),
-                html.tr([], [
-                  html.td([], [text("w83")]),
-                  html.td([], [text("Snare (280ms)")]),
-                  html.td([], [text("v1 w83 f440 a0 B0 l1")]),
-                ]),
-                html.tr([], [
-                  html.td([], [text("w84")]),
-                  html.td([], [text("Closed Hat (200ms)")]),
-                  html.td([], [text("v1 w84 f440 a-3 B0 ; +0.5 v1 l1")]),
-                ]),
-                html.tr([], [
-                  html.td([], [text("w85")]),
-                  html.td([], [text("Open Hat (750ms)")]),
-                  html.td([], [text("v1 w85 f440 a-3 B0 ; +0.75 v1 l1")]),
-                ]),
-                html.tr([], [
-                  html.td([], [text("w86")]),
-                  html.td([], [text("Hand Clap (200ms)")]),
-                  html.td([], [
-                    text("v2 w86 f440 a-1 B0 ; +1.0 v2 l1 ; +3.0 v2 l1"),
-                  ]),
-                ]),
-                html.tr([], [
-                  html.td([], [text("w87")]),
-                  html.td([], [text("Rimshot (60ms)")]),
-                  html.td([], [text("v2 w87 f440 a0 B0 l1")]),
-                ]),
-                html.tr([], [
-                  html.td([], [text("w88-w93")]),
-                  html.td([], [text("Toms (lo, mid, hi)")]),
-                  html.td([], [text("v3 w88 f440 a0 B0 l1")]),
-                ]),
-                html.tr([], [
-                  html.td([], [text("w94-w95")]),
-                  html.td([], [text("Crash & Ride Cymbals")]),
-                  html.td([], [text("v4 w94 f440 a-3 B0 l1")]),
-                ]),
-                html.tr([], [
-                  html.td([], [text("w96")]),
-                  html.td([], [text("808 Cowbell (900ms)")]),
-                  html.td([], [
-                    text("v5 w96 f440 a-2 B0 ; +0.5 v5 l1 ; +1.0 v5 l1"),
-                  ]),
-                ]),
-              ]),
+            html.li([], [
+              html.strong([], [text("~delay (Seconds-Relative): ")]),
+              text("Specifies raw wall-clock delay in seconds."),
+            ]),
+            html.li([], [
+              html.strong([], [text("Semicolon (;) Chunk Reset: ")]),
+              text(
+                "Each chunk separated by ; resets the defer accumulator to 0. So 'v0 l1 ; +1.0 v0 l1 ; +2.0 v0 l1' schedules events at exact bar offsets 0.0, 1.0, and 2.0.",
+              ),
+            ]),
+            html.li([], [
+              html.strong([], [text("Quantized Loop (~16 & ~4): ")]),
+              text(
+                "Clicking '🔁 Loop ~16' arms the block to launch at the start of the next 4/4 bar downbeat (tick 0). All tracks lock to the exact same phase grid.",
+              ),
             ]),
           ]),
+        ]),
 
-          // Section 2: Defers & Quantized Sync
-          html.section([class("help-section")], [
-            html.h3([], [text("⏱ How Defers (+) & Quantized Clock Sync Work")]),
-            html.ul([class("help-list")], [
-              html.li([], [
-                html.strong([], [text("+delay (Tempo-Relative): ")]),
-                text(
-                  "Multiplies delay by 1 beat. +1.0 = 1 beat (quarter note), +0.5 = 8th note, +0.25 = 16th note, +4.0 = 1 bar (4 beats).",
-                ),
-              ]),
-              html.li([], [
-                html.strong([], [text("~delay (Seconds-Relative): ")]),
-                text("Specifies raw wall-clock delay in seconds."),
-              ]),
-              html.li([], [
-                html.strong([], [text("Semicolon (;) Chunk Reset: ")]),
-                text(
-                  "Each chunk separated by ; resets the defer accumulator to 0. So 'v0 l1 ; +1.0 v0 l1 ; +2.0 v0 l1' schedules events at exact bar offsets 0.0, 1.0, and 2.0.",
-                ),
-              ]),
-              html.li([], [
-                html.strong([], [text("Quantized Loop (~16 & ~4): ")]),
-                text(
-                  "Clicking '🔁 Loop ~16' arms the block to launch at the start of the next 4/4 bar downbeat (tick 0). All tracks lock to the exact same phase grid.",
-                ),
+        // Section 3: Essential Commands & Voice Inspection
+        html.section([class("help-section")], [
+          html.h3([], [text("🔍 Voice Inspection & REPL Diagnostic Commands")]),
+          html.table([class("help-table")], [
+            html.thead([], [
+              html.tr([], [
+                html.th([], [text("Command")]),
+                html.th([], [text("Action")]),
+                html.th([], [text("Description")]),
               ]),
             ]),
-          ]),
-
-          // Section 3: Essential Commands & Voice Inspection
-          html.section([class("help-section")], [
-            html.h3([], [text("🔍 Voice Inspection & REPL Diagnostic Commands")]),
-            html.table([class("help-table")], [
-              html.thead([], [
-                html.tr([], [
-                  html.th([], [text("Command")]),
-                  html.th([], [text("Action")]),
-                  html.th([], [text("Description")]),
+            html.tbody([], [
+              html.tr([], [
+                html.td([], [text("??")]),
+                html.td([], [text("Show Active Voices")]),
+                html.td([], [
+                  text(
+                    "Prints active voice indices, pitches, notes, amplitudes, and wavetables",
+                  ),
                 ]),
               ]),
-              html.tbody([], [
-                html.tr([], [
-                  html.td([], [text("??")]),
-                  html.td([], [text("Show Active Voices")]),
-                  html.td([], [
-                    text(
-                      "Prints active voice indices, pitches, notes, amplitudes, and wavetables",
-                    ),
-                  ]),
-                ]),
-                html.tr([], [
-                  html.td([], [text("/s 2")]),
-                  html.td([], [text("Audio Status")]),
-                  html.td([], [
-                    text(
-                      "Shows audio driver, buffer size, active voice count, and allocations",
-                    ),
-                  ]),
-                ]),
-                html.tr([], [
-                  html.td([], [text("\\")]),
-                  html.td([], [text("Selected Voice Details")]),
-                  html.td([], [
-                    text(
-                      "Prints full ADSR, wave, filter mode, resonance, pan, and loop flag",
-                    ),
-                  ]),
-                ]),
-                html.tr([], [
-                  html.td([], [text("?ws")]),
-                  html.td([], [text("Show Wavetables")]),
-                  html.td([], [
-                    text(
-                      "Lists all loaded waves (0..14 classic, 15..49 DWGS, 82..99 drums)",
-                    ),
-                  ]),
-                ]),
-                html.tr([], [
-                  html.td([], [text("(1 2 3) /SS 0")]),
-                  html.td([], [text("Array Stream")]),
-                  html.td([], [
-                    text(
-                      "Loads an array into stream 0; pops next item with &0 (e.g. n&0)",
-                    ),
-                  ]),
-                ]),
-                html.tr([], [
-                  html.td([], [text("S-1")]),
-                  html.td([], [text("Stop All Voices")]),
-                  html.td([], [
-                    text(
-                      "Immediate panic button that silences and resets all 256 voices",
-                    ),
-                  ]),
+              html.tr([], [
+                html.td([], [text("/s 2")]),
+                html.td([], [text("Audio Status")]),
+                html.td([], [
+                  text(
+                    "Shows audio driver, buffer size, active voice count, and allocations",
+                  ),
                 ]),
               ]),
-            ]),
-          ]),
-
-          // Section 4: Keyboard Shortcuts
-          html.section([class("help-section")], [
-            html.h3([], [text("⌨ Keyboard Shortcuts")]),
-            html.ul([class("help-list")], [
-              html.li([], [
-                html.strong([], [text("Shift+Enter (in code block): ")]),
-                text(
-                  "Evaluates block once immediately and logs output to console.",
-                ),
-              ]),
-              html.li([], [
-                html.strong([], [
-                  text("Ctrl+Enter / Cmd+Enter (in code block): "),
+              html.tr([], [
+                html.td([], [text("\\")]),
+                html.td([], [text("Selected Voice Details")]),
+                html.td([], [
+                  text(
+                    "Prints full ADSR, wave, filter mode, resonance, pan, and loop flag",
+                  ),
                 ]),
-                text("Arms block for quantized looping (~16 ticks = 1 bar)."),
               ]),
-              html.li([], [
-                html.strong([], [text("Enter (in REPL prompt): ")]),
-                text("Submits ASCII Skode command and prints response."),
+              html.tr([], [
+                html.td([], [text("?ws")]),
+                html.td([], [text("Show Wavetables")]),
+                html.td([], [
+                  text(
+                    "Lists all loaded waves (0..14 classic, 15..49 DWGS, 82..99 drums)",
+                  ),
+                ]),
               ]),
-              html.li([], [
-                html.strong([], [text("ArrowUp / ArrowDown (in REPL): ")]),
-                text("Navigates previous command history."),
+              html.tr([], [
+                html.td([], [text("(1 2 3) /SS 0")]),
+                html.td([], [text("Array Stream")]),
+                html.td([], [
+                  text(
+                    "Loads an array into stream 0; pops next item with &0 (e.g. n&0)",
+                  ),
+                ]),
               ]),
-              html.li([], [
-                html.strong([], [text("Click Voice Circle (in Orbit): ")]),
-                text(
-                  "Inspects that voice's parameters in the terminal (dispatches v<id> \\).",
-                ),
+              html.tr([], [
+                html.td([], [text("S-1")]),
+                html.td([], [text("Stop All Voices")]),
+                html.td([], [
+                  text(
+                    "Immediate panic button that silences and resets all 256 voices",
+                  ),
+                ]),
               ]),
             ]),
           ]),
         ]),
-      ],
-    ),
+
+        // Section 4: Keyboard Shortcuts
+        html.section([class("help-section")], [
+          html.h3([], [text("⌨ Keyboard Shortcuts")]),
+          html.ul([class("help-list")], [
+            html.li([], [
+              html.strong([], [text("Shift+Enter (in code block): ")]),
+              text(
+                "Evaluates block once immediately and logs output to console.",
+              ),
+            ]),
+            html.li([], [
+              html.strong([], [
+                text("Ctrl+Enter / Cmd+Enter (in code block): "),
+              ]),
+              text("Arms block for quantized looping (~16 ticks = 1 bar)."),
+            ]),
+            html.li([], [
+              html.strong([], [text("Enter (in REPL prompt): ")]),
+              text("Submits ASCII Skode command and prints response."),
+            ]),
+            html.li([], [
+              html.strong([], [text("ArrowUp / ArrowDown (in REPL): ")]),
+              text("Navigates previous command history."),
+            ]),
+            html.li([], [
+              html.strong([], [text("Click Voice Circle (in Orbit): ")]),
+              text(
+                "Inspects that voice's parameters in the terminal (dispatches v<id> \\).",
+              ),
+            ]),
+          ]),
+        ]),
+      ]),
+    ]),
   ])
 }

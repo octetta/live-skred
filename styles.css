@@ -227,7 +227,8 @@ html, body {
 .live-workspace {
   display: grid;
   grid-template-columns: 1fr 420px;
-  height: calc(100vh - 52px - 140px);
+  flex: 1 1 0;
+  min-height: 0;
   overflow: hidden;
   background-color: var(--bg-primary);
 }
@@ -488,10 +489,18 @@ html, body {
 
 .repl-logs {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 6px 16px;
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
+}
+
+.repl-logs-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
 }
 
 .repl-log-pre {

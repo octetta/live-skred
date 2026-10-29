@@ -167,7 +167,11 @@ export function ensureEngineRunning() {
   const M = getWasmModule();
   if (!M) return false;
   ensureAudioContext();
+  if (engineStarted) {
+    return true;
+  }
   if (typeof M._skred_audio_running === "function" && M._skred_audio_running()) {
+    engineStarted = true;
     return true;
   }
   try {
@@ -194,11 +198,10 @@ export function ensureEngineRunning() {
   return false;
 }
 
-// Unlock audio on initial user interaction
+// Unlock audio on initial user interaction (resumes suspended AudioContext without re-initializing the engine)
 if (typeof win.addEventListener === "function") {
   const unlock = () => {
     ensureAudioContext();
-    ensureEngineRunning();
     win.removeEventListener("pointerdown", unlock);
     win.removeEventListener("touchstart", unlock);
     win.removeEventListener("keydown", unlock);
