@@ -52,7 +52,12 @@ pub fn skode_stream_and_defer_parsing_test() {
   let assert Ok(script_stream) = skode.parse("( 60 63 67 70 ) /SS 0")
   let assert skode.Script([
     skode.Chunk([
-      skode.Arr([skode.Num(60.0), skode.Num(63.0), skode.Num(67.0), skode.Num(70.0)]),
+      skode.Arr([
+        skode.Num(60.0),
+        skode.Num(63.0),
+        skode.Num(67.0),
+        skode.Num(70.0),
+      ]),
       skode.Atom("/SS", [skode.Num(0.0)]),
     ]),
   ]) = script_stream
@@ -107,4 +112,3 @@ pub fn skode_atom_multi_arg_and_names_test() {
     ]),
   )
 }
-

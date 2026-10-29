@@ -12,16 +12,19 @@ import lustre/element.{type Element}
 import lustre/element/svg
 
 const center_x = 200.0
+
 const center_y = 200.0
+
 const orbit_radius = 140.0
+
 const pi = 3.141592653589793
 
 /// Calculates (x, y) coordinates on the orbit for voice index 0..15.
 fn voice_coordinates(index: Int) -> #(Float, Float) {
   // Voice 0 starts at top (-PI/2) and goes clockwise
-  let angle = -0.5 *. pi +. {int.to_float(index) *. {2.0 *. pi /. 16.0}}
-  let x = center_x +. {orbit_radius *. float_cos(angle)}
-  let y = center_y +. {orbit_radius *. float_sin(angle)}
+  let angle = -0.5 *. pi +. { int.to_float(index) *. { 2.0 *. pi /. 16.0 } }
+  let x = center_x +. { orbit_radius *. float_cos(angle) }
+  let y = center_y +. { orbit_radius *. float_sin(angle) }
   #(x, y)
 }
 
@@ -29,12 +32,14 @@ fn voice_coordinates(index: Int) -> #(Float, Float) {
 fn float_cos(rad: Float) -> Float {
   // Simple trigonometric lookup / approximation
   let norm = float_wrap(rad, -1.0 *. pi, pi)
-  1.0 -. {norm *. norm /. 2.0} +. {norm *. norm *. norm *. norm /. 24.0}
+  1.0 -. { norm *. norm /. 2.0 } +. { norm *. norm *. norm *. norm /. 24.0 }
 }
 
 fn float_sin(rad: Float) -> Float {
   let norm = float_wrap(rad, -1.0 *. pi, pi)
-  norm -. {norm *. norm *. norm /. 6.0} +. {norm *. norm *. norm *. norm *. norm /. 120.0}
+  norm
+  -. { norm *. norm *. norm /. 6.0 }
+  +. { norm *. norm *. norm *. norm *. norm /. 120.0 }
 }
 
 fn float_wrap(val: Float, min_val: Float, max_val: Float) -> Float {
@@ -43,7 +48,7 @@ fn float_wrap(val: Float, min_val: Float, max_val: Float) -> Float {
   let rem = case range >. 0.0 {
     True -> {
       let turns = float.floor(offset /. range)
-      offset -. {turns *. range}
+      offset -. { turns *. range }
     }
     False -> 0.0
   }
@@ -85,7 +90,7 @@ fn render_voice_node(node: VoiceNode) -> Element(a) {
   let #(cx, cy) = voice_coordinates(node.id)
   let color = voice_color(node.id, node.active)
   let base_radius = case node.active {
-    True -> 16.0 +. {node.velocity *. 8.0}
+    True -> 16.0 +. { node.velocity *. 8.0 }
     False -> 12.0
   }
   let opacity_str = case node.active {

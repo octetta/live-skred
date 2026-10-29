@@ -15,7 +15,7 @@ fn js_subscribe_clock(interval_ms: Int, on_tick: fn() -> Nil) -> fn() -> Nil
 pub fn tick_interval_ms(bpm: Float) -> Int {
   let safe_bpm = float.clamp(bpm, 20.0, 300.0)
   // 60,000 ms / (bpm * 4 ticks)
-  let ms = 60_000.0 /. {safe_bpm *. 4.0}
+  let ms = 60_000.0 /. { safe_bpm *. 4.0 }
   float.round(ms)
 }
 
@@ -30,8 +30,7 @@ pub fn subscribe_clock(
     True -> {
       let interval = tick_interval_ms(bpm)
       effect.from(fn(dispatch) {
-        let _cleanup =
-          js_subscribe_clock(interval, fn() { dispatch(on_tick) })
+        let _cleanup = js_subscribe_clock(interval, fn() { dispatch(on_tick) })
         Nil
       })
     }

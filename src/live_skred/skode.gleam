@@ -349,7 +349,8 @@ pub fn command_to_string(cmd: SkodeCommand) -> String {
 
     DelayRelative(amt, c) ->
       "+" <> value_to_string(amt) <> " " <> command_to_string(c)
-    DelayTicks(amt, c) -> "~" <> value_to_string(amt) <> " " <> command_to_string(c)
+    DelayTicks(amt, c) ->
+      "~" <> value_to_string(amt) <> " " <> command_to_string(c)
 
     Bundle(commands) ->
       list.map(commands, command_to_string) |> string.join("; ")

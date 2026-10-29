@@ -114,9 +114,12 @@ pub fn view_transport_bar(model: Model) -> Element(Msg) {
       ]),
 
       // Emergency Panic Button
-      html.button([class("btn btn-danger panic-btn"), event.on_click(types.PanicStop)], [
-        text("⏹ ALL OFF (S-1)"),
-      ]),
+      html.button(
+        [class("btn btn-danger panic-btn"), event.on_click(types.PanicStop)],
+        [
+          text("⏹ ALL OFF (S-1)"),
+        ],
+      ),
     ]),
   ])
 }
@@ -224,7 +227,11 @@ pub fn view_code_block(block: CodeBlock, selected_id: Int) -> Element(Msg) {
         case ast_status {
           Ok(skode.Script(chunks)) ->
             html.span([class("ast-valid")], [
-              text("✓ Valid Skode (" <> int.to_string(list.length(chunks)) <> " chunks)"),
+              text(
+                "✓ Valid Skode ("
+                <> int.to_string(list.length(chunks))
+                <> " chunks)",
+              ),
             ])
           Error(skode.ParseError(msg, pos)) ->
             html.span([class("ast-error")], [
@@ -271,7 +278,10 @@ pub fn view_repl_bar(model: Model) -> Element(Msg) {
         event.on_input(types.UpdateReplInput),
       ]),
       html.button(
-        [class("btn btn-sm btn-primary"), event.on_click(types.SubmitReplCommand)],
+        [
+          class("btn btn-sm btn-primary"),
+          event.on_click(types.SubmitReplCommand),
+        ],
         [text("Send (Enter)")],
       ),
     ]),

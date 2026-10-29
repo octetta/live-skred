@@ -54,18 +54,13 @@ pub fn init(_) -> #(Model, Effect(Msg)) {
     Model(
       blocks: default_preset.blocks,
       selected_block_id: 0,
-      repl: ReplState(
-        input: "",
-        history: [],
-        history_index: -1,
-        logs: [
-          ConsoleLog(
-            id: "init",
-            text: "Welcome to live-skred! Press Shift+Enter to eval, Ctrl+Enter to loop, or Esc for panic.",
-            is_error: False,
-          ),
-        ],
-      ),
+      repl: ReplState(input: "", history: [], history_index: -1, logs: [
+        ConsoleLog(
+          id: "init",
+          text: "Welcome to live-skred! Press Shift+Enter to eval, Ctrl+Enter to loop, or Esc for panic.",
+          is_error: False,
+        ),
+      ]),
       voices: init_voices(),
       streams: [],
       clock: QuantizedClock(
@@ -83,7 +78,11 @@ pub fn init(_) -> #(Model, Effect(Msg)) {
     effect.batch([
       skred.init_engine_effect(),
       skred.subscribe_control_plane(types.ControlEventsReceived),
-      clock.subscribe_clock(model.clock.bpm, model.clock.is_running, types.ClockTick),
+      clock.subscribe_clock(
+        model.clock.bpm,
+        model.clock.is_running,
+        types.ClockTick,
+      ),
     ])
 
   #(model, effects)
@@ -97,13 +96,10 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
         False -> "Failed to initialize Skred WASM audio engine."
       }
       let new_repl =
-        ReplState(
-          ..model.repl,
-          logs: [
-            ConsoleLog(id: "engine_ready", text: log, is_error: !success),
-            ..model.repl.logs
-          ],
-        )
+        ReplState(..model.repl, logs: [
+          ConsoleLog(id: "engine_ready", text: log, is_error: !success),
+          ..model.repl.logs
+        ])
       #(Model(..model, is_engine_ready: success, repl: new_repl), effect.none())
     }
 
@@ -151,10 +147,7 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
                   CodeBlock(..block, active_pulse: True),
                   Some(block.code),
                 )
-                False -> #(
-                  CodeBlock(..block, active_pulse: False),
-                  None,
-                )
+                False -> #(CodeBlock(..block, active_pulse: False), None)
               }
             }
             _ -> #(CodeBlock(..block, active_pulse: False), None)
@@ -172,10 +165,7 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
         })
         |> effect.batch
 
-      #(
-        Model(..model, clock: updated_clock, blocks: updated_blocks),
-        effects,
-      )
+      #(Model(..model, clock: updated_clock, blocks: updated_blocks), effects)
     }
 
     types.TogglePlayPause -> {
@@ -192,7 +182,11 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
       let eff =
         effect.batch([
           skred.send_command("T" <> float.to_string(clamped)),
-          clock.subscribe_clock(clamped, model.clock.is_running, types.ClockTick),
+          clock.subscribe_clock(
+            clamped,
+            model.clock.is_running,
+            types.ClockTick,
+          ),
         ])
       #(Model(..model, clock: updated_clock), eff)
     }
@@ -205,7 +199,10 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
       )
     }
 
-    types.SelectBlock(id) -> #(Model(..model, selected_block_id: id), effect.none())
+    types.SelectBlock(id) -> #(
+      Model(..model, selected_block_id: id),
+      effect.none(),
+    )
 
     types.UpdateBlockCode(id, new_code) -> {
       let updated_blocks =
@@ -326,15 +323,11 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
       case cmd != "" {
         True -> {
           let updated_repl =
-            ReplState(
-              ..model.repl,
-              input: "",
-              history: [cmd, ..model.repl.history],
-            )
-          #(
-            Model(..model, repl: updated_repl),
-            skred.eval_command_effect(cmd),
-          )
+            ReplState(..model.repl, input: "", history: [
+              cmd,
+              ..model.repl.history
+            ])
+          #(Model(..model, repl: updated_repl), skred.eval_command_effect(cmd))
         }
         False -> #(model, effect.none())
       }
@@ -357,11 +350,7 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
 
     types.LoadPreset(preset) -> {
       #(
-        Model(
-          ..model,
-          blocks: preset.blocks,
-          selected_block_id: 0,
-        ),
+        Model(..model, blocks: preset.blocks, selected_block_id: 0),
         skred.panic_effect(),
       )
     }
@@ -378,8 +367,7 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
 }
 
 pub fn view(model: Model) -> Element(Msg) {
-  let active_voices_count =
-    list.count(model.voices, fn(v) { v.active })
+  let active_voices_count = list.count(model.voices, fn(v) { v.active })
 
   html.div([class("live-skred-app")], [
     // Top Transport Bar
@@ -426,7 +414,9 @@ pub fn view(model: Model) -> Element(Msg) {
         html.div([class("telemetry-card")], [
           html.h3([], [text("STREAM & TIMING INSPECTOR")]),
           html.p([class("telemetry-hint")], [
-            text("Streams pop via (array) /SS <slot> | Scheduled via +0.25 or +$0 | Quantized via ~4"),
+            text(
+              "Streams pop via (array) /SS <slot> | Scheduled via +0.25 or +$0 | Quantized via ~4",
+            ),
           ]),
         ]),
       ]),

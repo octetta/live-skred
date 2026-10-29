@@ -4,9 +4,7 @@
 //// physical modeling, and deferred generative arpeggios.
 
 import gleam/option.{None}
-import live_skred/types.{
-  type PresetSet, CodeBlock, Looping, PresetSet, Ready,
-}
+import live_skred/types.{type PresetSet, CodeBlock, Looping, PresetSet, Ready}
 
 /// The default starter set loaded on first launch: Minimal Techno Groove.
 pub fn default_starter_set() -> PresetSet {
