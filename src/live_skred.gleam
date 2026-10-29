@@ -173,9 +173,14 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
 
     types.TogglePlayPause -> {
       let new_running = !model.clock.is_running
-      let updated_clock = QuantizedClock(..model.clock, is_running: new_running)
-      let eff =
-        clock.subscribe_clock(model.clock.bpm, new_running, types.ClockTick)
+      let updated_clock = case new_running {
+        True -> QuantizedClock(..model.clock, is_running: True, tick_count: 0)
+        False -> QuantizedClock(..model.clock, is_running: False)
+      }
+      let eff = case new_running {
+        True -> clock.subscribe_clock(model.clock.bpm, True, types.ClockTick)
+        False -> effect.batch([clock.stop_clock_effect(), skred.panic_effect()])
+      }
       #(Model(..model, clock: updated_clock), eff)
     }
 

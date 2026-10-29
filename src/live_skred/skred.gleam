@@ -56,7 +56,7 @@ pub fn panic_effect() -> Effect(Msg) {
 
 /// Sets the master volume in decibels (e.g. 0.0 for unity, -6.0, etc.)
 pub fn set_master_volume_effect(db: Float) -> Effect(Msg) {
-  send_command("V" <> float.to_string(db))
+  send_command(";V" <> float.to_string(db) <> ";")
 }
 
 // ---------------------------------------------------------------------------

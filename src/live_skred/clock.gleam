@@ -9,6 +9,17 @@ import lustre/effect.{type Effect}
 @external(javascript, "../skred_ffi.mjs", "subscribeClock")
 fn js_subscribe_clock(interval_ms: Int, on_tick: fn() -> Nil) -> fn() -> Nil
 
+@external(javascript, "../skred_ffi.mjs", "stopClock")
+fn js_stop_clock() -> Nil
+
+/// Explicitly stops any active clock timer in the JS runtime.
+pub fn stop_clock_effect() -> Effect(msg) {
+  effect.from(fn(_dispatch) {
+    js_stop_clock()
+    Nil
+  })
+}
+
 /// Calculates the duration of one tempo tick in milliseconds.
 /// Assuming standard 4 ticks per beat (16th notes) or 1 tick per beat.
 /// At 120 BPM, 1 beat (quarter note) = 500ms. 1 tick (16th note) = 125ms.
@@ -26,7 +37,7 @@ pub fn subscribe_clock(
   on_tick: msg,
 ) -> Effect(msg) {
   case is_running {
-    False -> effect.none()
+    False -> stop_clock_effect()
     True -> {
       let interval = tick_interval_ms(bpm)
       effect.from(fn(dispatch) {

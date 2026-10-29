@@ -291,6 +291,48 @@ export function subscribeEvents(onBatch) {
 // 3. Command Execution & REPL Evaluation
 // ---------------------------------------------------------------------------
 
+const pendingContinuousCommands = new Map();
+let continuousRafId = null;
+
+const scheduleRaf =
+  typeof requestAnimationFrame === "function"
+    ? requestAnimationFrame
+    : (fn) => setTimeout(fn, 16);
+const cancelRaf =
+  typeof cancelAnimationFrame === "function"
+    ? cancelAnimationFrame
+    : clearTimeout;
+
+function getContinuousKey(cmd) {
+  if (typeof cmd !== "string") return null;
+  const trimmed = cmd.replace(/\s+/g, "");
+
+  // Master volume parameter: ;V...; or V...
+  if (/^;?V[-0-9.]+;?$/.test(trimmed)) {
+    return "master_volume";
+  }
+
+  // Voice volume parameter: v0a...;v1a...
+  const volMatch = /^v(\d+)a([-\d.]+);?$/.exec(trimmed);
+  if (volMatch) {
+    return `vol:${volMatch[1]}`;
+  }
+
+  return null;
+}
+
+export function flushContinuousCommands() {
+  if (continuousRafId !== null) {
+    cancelRaf(continuousRafId);
+    continuousRafId = null;
+  }
+  if (pendingContinuousCommands.size === 0) return;
+  for (const cmd of pendingContinuousCommands.values()) {
+    executeSkredCommand(cmd);
+  }
+  pendingContinuousCommands.clear();
+}
+
 function flushCommandQueue() {
   const M = getWasmModule();
   if (!M) return;
@@ -325,12 +367,30 @@ export function sendCommand(cmd) {
     commandQueue.push(cmd);
     return;
   }
-  executeSkredCommand(cmd);
+
+  const key = getContinuousKey(cmd);
+  if (key) {
+    // Coalesce continuous slider updates to at most 1 per animation frame
+    pendingContinuousCommands.set(key, cmd);
+    if (continuousRafId === null) {
+      continuousRafId = scheduleRaf(() => {
+        continuousRafId = null;
+        for (const c of pendingContinuousCommands.values()) {
+          executeSkredCommand(c);
+        }
+        pendingContinuousCommands.clear();
+      });
+    }
+  } else {
+    flushContinuousCommands();
+    executeSkredCommand(cmd);
+  }
 }
 
 export function evalCommand(cmd, callback) {
   ensureAudioContext();
   ensureEngineRunning();
+  flushContinuousCommands();
   const M = getWasmModule();
   if (!M) {
     if (callback) callback(cmd, -1, "Skred WASM engine is not yet initialized.");
@@ -405,8 +465,20 @@ export function evalCommand(cmd, callback) {
 // 4. Quantized Musical Clock Timer
 // ---------------------------------------------------------------------------
 
+let activeClockTimer = null;
+
+export function stopClock() {
+  if (activeClockTimer !== null) {
+    clearInterval(activeClockTimer);
+    activeClockTimer = null;
+  }
+}
+
 export function subscribeClock(intervalMs, onTick) {
-  const timer = setInterval(() => {
+  // Always clear any existing interval first to prevent duplicate rhythms
+  stopClock();
+
+  activeClockTimer = setInterval(() => {
     try {
       if (onTick) onTick();
     } catch (e) {
@@ -414,5 +486,5 @@ export function subscribeClock(intervalMs, onTick) {
     }
   }, Math.max(10, intervalMs));
 
-  return () => clearInterval(timer);
+  return () => stopClock();
 }

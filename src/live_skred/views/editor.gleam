@@ -43,6 +43,18 @@ pub fn key_down_block_decoder(id: Int) -> decode.Decoder(Msg) {
   }
 }
 
+/// Safely parses a string into a float, falling back to an int parse or fallback value.
+fn parse_float_input(val_str: String, fallback: Float) -> Float {
+  case float.parse(val_str) {
+    Ok(v) -> v
+    Error(_) ->
+      case int.parse(val_str) {
+        Ok(i) -> int.to_float(i)
+        Error(_) -> fallback
+      }
+  }
+}
+
 /// Renders the top transport control bar.
 pub fn view_transport_bar(model: Model) -> Element(Msg) {
   html.header([class("transport-bar")], [
@@ -123,10 +135,7 @@ pub fn view_transport_bar(model: Model) -> Element(Msg) {
           attribute.max("240"),
           value(float.to_string(model.clock.bpm)),
           event.on_input(fn(str) {
-            case float.parse(str) {
-              Ok(b) -> types.SetBpm(b)
-              _ -> types.SetBpm(model.clock.bpm)
-            }
+            types.SetBpm(parse_float_input(str, model.clock.bpm))
           }),
         ]),
       ]),
@@ -141,10 +150,7 @@ pub fn view_transport_bar(model: Model) -> Element(Msg) {
           attribute.step("1"),
           value(float.to_string(model.master_volume_db)),
           event.on_input(fn(str) {
-            case float.parse(str) {
-              Ok(v) -> types.SetMasterVolume(v)
-              _ -> types.SetMasterVolume(model.master_volume_db)
-            }
+            types.SetMasterVolume(parse_float_input(str, model.master_volume_db))
           }),
         ]),
         html.span([class("db-label")], [
