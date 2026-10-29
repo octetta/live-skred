@@ -104,6 +104,7 @@ pub type Model {
     is_engine_ready: Bool,
     master_volume_db: Float,
     panic_active: Bool,
+    show_help: Bool,
   )
 }
 
@@ -115,6 +116,7 @@ pub type Msg {
   TogglePlayPause
   SetBpm(bpm: Float)
   SetMasterVolume(db: Float)
+  ToggleHelp
 
   // Block Editing & Execution
   SelectBlock(id: Int)

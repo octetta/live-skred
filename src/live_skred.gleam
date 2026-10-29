@@ -74,6 +74,7 @@ pub fn init(_) -> #(Model, Effect(Msg)) {
       is_engine_ready: False,
       master_volume_db: 0.0,
       panic_active: False,
+      show_help: False,
     )
 
   let effects =
@@ -256,15 +257,41 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
                 True ->
                   CodeBlock(
                     ..b,
-                    active_pulse: True,
+                    active_pulse: False,
                     status: Looping(interval_ticks),
                   )
                 False -> b
               }
             })
+          // If clock was paused, start it automatically at tick 0 so blocks launch in phase
+          let #(new_clock, clock_eff) = case model.clock.is_running {
+            True -> #(model.clock, effect.none())
+            False -> {
+              let c =
+                QuantizedClock(..model.clock, is_running: True, tick_count: 0)
+              #(c, clock.subscribe_clock(c.bpm, True, types.ClockTick))
+            }
+          }
+          let log =
+            ConsoleLog(
+              id: "armed_" <> int.to_string(id),
+              text: "> Armed ["
+                <> block.name
+                <> "] for quantized loop (~"
+                <> float.to_string(interval_ticks)
+                <> " ticks)",
+              is_error: False,
+            )
+          let updated_repl =
+            ReplState(..model.repl, logs: [log, ..model.repl.logs])
           #(
-            Model(..model, blocks: updated_blocks),
-            skred.eval_command_effect(block.code),
+            Model(
+              ..model,
+              blocks: updated_blocks,
+              clock: new_clock,
+              repl: updated_repl,
+            ),
+            clock_eff,
           )
         }
         _ -> #(model, effect.none())
@@ -423,6 +450,11 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
         skred.panic_effect(),
       )
     }
+
+    types.ToggleHelp -> #(
+      Model(..model, show_help: !model.show_help),
+      effect.none(),
+    )
   }
 }
 
@@ -484,6 +516,12 @@ pub fn view(model: Model) -> Element(Msg) {
 
     // Bottom REPL Bar
     editor.view_repl_bar(model),
+
+    // Help & Syntax Modal
+    case model.show_help {
+      True -> editor.view_help_modal()
+      False -> element.none()
+    },
   ])
 }
 
