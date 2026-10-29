@@ -123,6 +123,7 @@ pub type Msg {
   UpdateBlockCode(id: Int, code: String)
   UpdateBlockName(id: Int, name: String)
   EvalBlockImmediate(id: Int)
+  EvalBlockSetup(id: Int)
   EvalBlockQuantized(id: Int, interval_ticks: Float)
   ToggleBlockMute(id: Int)
   DeleteBlock(id: Int)

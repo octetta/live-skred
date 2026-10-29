@@ -1,6 +1,7 @@
 import gleeunit
 import gleeunit/should
 import live_skred/clock
+import live_skred/inspector
 import live_skred/presets
 import live_skred/skode
 import live_skred/types.{type CodeBlock}
@@ -39,11 +40,29 @@ pub fn preset_blocks_parse_cleanly_test() {
 fn list_all_blocks_valid(blocks: List(CodeBlock)) -> Bool {
   case blocks {
     [] -> True
-    [b, ..rest] ->
-      case skode.parse(b.code) {
-        Ok(_) -> list_all_blocks_valid(rest)
+    [b, ..rest] -> {
+      let parsed_whole = case skode.parse(b.code) {
+        Ok(_) -> True
         Error(_) -> False
       }
+      let #(setup, pattern) = skode.split_setup_and_pattern(b.code)
+      let parsed_setup = case setup {
+        "" -> True
+        _ ->
+          case skode.parse(setup) {
+            Ok(_) -> True
+            Error(_) -> False
+          }
+      }
+      let parsed_pattern = case skode.parse(pattern) {
+        Ok(_) -> True
+        Error(_) -> False
+      }
+      case parsed_whole && parsed_setup && parsed_pattern {
+        True -> list_all_blocks_valid(rest)
+        False -> False
+      }
+    }
   }
 }
 
@@ -111,4 +130,23 @@ pub fn skode_atom_multi_arg_and_names_test() {
       skode.Num(0.2),
     ]),
   )
+}
+
+pub fn ast_voice_inspector_test() {
+  let line = "v0 w82 f440 n69,0 a3 vc1 b0 B0 p-0.5 t0,0.3,0,0"
+  let parsed_res = inspector.parse_voice_line(line)
+  let assert Ok(v) = parsed_res
+
+  v.voice_id |> should.equal(0)
+  v.wave_id |> should.equal(82)
+  v.wave_name |> should.equal("808 Kick Drum (300ms)")
+  v.freq_hz |> should.equal(440.0)
+  v.amp_db |> should.equal(3.0)
+  v.pan |> should.equal(-0.5)
+  v.loop_mode |> should.equal(0)
+  v.decay_ms |> should.equal(300.0)
+  v.events_active |> should.equal(True)
+
+  let formatted = inspector.format_console_output("v0 \\", line)
+  formatted |> should.not_equal("")
 }

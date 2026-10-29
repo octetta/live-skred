@@ -10,7 +10,9 @@ import gleam/option.{None, Some}
 import gleam/result
 import gleam/string
 import live_skred/clock
+import live_skred/inspector
 import live_skred/presets
+import live_skred/skode
 import live_skred/skred
 import live_skred/types.{
   type Model, type Msg, type VoiceNode, CodeBlock, ConsoleLog, Looping, Model,
@@ -146,10 +148,15 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
                 False -> False
               }
               case should_eval {
-                True -> #(
-                  CodeBlock(..block, active_pulse: True),
-                  Some(block.code),
-                )
+                True -> {
+                  let #(_setup, pattern) =
+                    skode.split_setup_and_pattern(block.code)
+                  let code_to_run = case pattern == "" {
+                    True -> block.code
+                    False -> pattern
+                  }
+                  #(CodeBlock(..block, active_pulse: True), Some(code_to_run))
+                }
                 False -> #(CodeBlock(..block, active_pulse: False), None)
               }
             }
@@ -248,6 +255,19 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
             Model(..model, blocks: updated_blocks),
             skred.eval_command_effect(block.code),
           )
+        }
+        _ -> #(model, effect.none())
+      }
+    }
+
+    types.EvalBlockSetup(id) -> {
+      case list.find(model.blocks, fn(b) { b.id == id }) {
+        Ok(block) -> {
+          let #(setup, _pattern) = skode.split_setup_and_pattern(block.code)
+          case setup != "" {
+            True -> #(model, skred.eval_command_effect(setup))
+            False -> #(model, effect.none())
+          }
         }
         _ -> #(model, effect.none())
       }
@@ -416,18 +436,18 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
     }
 
     types.ConsoleResultReceived(cmd, ret, stdout) -> {
-      let formatted_text = case stdout {
-        "" ->
-          case ret == 0 {
-            True -> "> " <> cmd <> " -> OK"
-            False ->
+      let formatted_text = case ret != 0 {
+        True ->
+          case stdout == "" {
+            True ->
               "> "
               <> cmd
               <> " -> Error (exit code "
               <> int.to_string(ret)
               <> ")"
+            False -> "> " <> cmd <> " -> Error:\n" <> stdout
           }
-        _ -> "> " <> cmd <> "\n" <> stdout
+        False -> inspector.format_console_output(cmd, stdout)
       }
       let log =
         ConsoleLog(

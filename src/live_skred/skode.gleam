@@ -1165,6 +1165,10 @@ fn parse_chunk_elements(
       }
       Ok(#(rest, next_pos + 1, list.reverse(final_acc)))
     }
+    ["-", "-", "-", ..rest] -> {
+      let #(r2, p2, c) = read_comment(rest, next_pos + 3, ["-", "-", "-"])
+      parse_chunk_elements(r2, p2, pending_args, [Comment(c), ..acc])
+    }
     ["#", ..rest] -> {
       let #(r2, p2, c) = read_comment(rest, next_pos + 1, [])
       parse_chunk_elements(r2, p2, pending_args, [Comment(c), ..acc])
@@ -1474,4 +1478,19 @@ pub fn parse_command(input: String) -> Result(List(SkodeCommand), ParseError) {
       elements_to_commands(elements)
     })
   Ok(all_commands)
+}
+
+/// Splits a live code block on the "---" divider into #(setup_code, pattern_code).
+/// Everything above "---" is setup (timbre, envelope, streams) executed on demand.
+/// Everything below "---" is the recurring rhythmic pattern looped on beat ticks.
+/// If no "---" divider is present, setup_code is "" and pattern_code is the full code.
+pub fn split_setup_and_pattern(code: String) -> #(String, String) {
+  case string.split_once(code, "\n---\n") {
+    Ok(#(setup, pattern)) -> #(string.trim(setup), string.trim(pattern))
+    Error(Nil) ->
+      case string.split_once(code, "\n---") {
+        Ok(#(setup, pattern)) -> #(string.trim(setup), string.trim(pattern))
+        Error(Nil) -> #("", string.trim(code))
+      }
+  }
 }

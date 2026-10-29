@@ -191,6 +191,8 @@ pub fn view_transport_bar(model: Model) -> Element(Msg) {
 pub fn view_code_block(block: CodeBlock, selected_id: Int) -> Element(Msg) {
   let is_selected = block.id == selected_id
   let ast_status = skode.parse(block.code)
+  let #(setup_code, _pattern_code) = skode.split_setup_and_pattern(block.code)
+  let has_setup = setup_code != ""
 
   html.div(
     [
@@ -216,6 +218,11 @@ pub fn view_code_block(block: CodeBlock, selected_id: Int) -> Element(Msg) {
           event.on_input(types.UpdateBlockName(block.id, _)),
         ]),
         html.div([class("block-status-badge")], [
+          case has_setup {
+            True ->
+              html.span([class("badge badge-setup")], [text("SETUP + LOOP")])
+            False -> html.text("")
+          },
           html.span(
             [
               class(case block.status {
@@ -238,6 +245,17 @@ pub fn view_code_block(block: CodeBlock, selected_id: Int) -> Element(Msg) {
           ),
         ]),
         html.div([class("block-actions")], [
+          case has_setup {
+            True ->
+              html.button(
+                [
+                  class("btn btn-sm btn-setup"),
+                  event.on_click(types.EvalBlockSetup(block.id)),
+                ],
+                [text("🛠 Run Setup")],
+              )
+            False -> html.text("")
+          },
           html.button(
             [
               class("btn btn-sm btn-eval"),
