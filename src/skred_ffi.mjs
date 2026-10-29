@@ -110,14 +110,18 @@ export function initEngine(callback) {
       // 2. Set master volume: V0 (0 dB unity)
       executeSkredCommand("V0");
 
-      // 3. Initialize voices 0..15 (8 stereo pairs)
-      // Pan: -1 for left, +1 for right, unity pitch 69, envelope t1 0 1 1, loop B1, volume a0
-      for (let i = 0; i < 8; i++) {
-        const left = i * 2;
-        const right = i * 2 + 1;
-        executeSkredCommand(`v${left} p-1 n69 B1 t1 0 1 1 a0`);
-        executeSkredCommand(`v${right} p1 n69 B1 t1 0 1 1 a0`);
+      // 3. Initialize voices 0..15 cleanly (no infinite wave loop B0, percussive decay envelope)
+      // Voice 0 = Kick (w82), Voice 1 = Hat (w84), Voice 2 = Clap (w86)
+      executeSkredCommand("v0 p-0.5 w82 f440 a3 B0");
+      executeSkredCommand("v1 p0.5 w84 f440 a-3 B0");
+      executeSkredCommand("v2 p0.0 w86 f440 a-1 B0");
+      for (let i = 3; i < 16; i++) {
+        const pan = (i % 2 === 0) ? -0.7 : 0.7;
+        executeSkredCommand(`v${i} p${pan} n60 B0 t0,0.3,0,0 a-3`);
       }
+
+      // Ensure all voices are silenced on startup
+      executeSkredCommand("S-1");
 
       // 4. Enable voice lifecycle events on voices 0..15 (for real-time feedback)
       if (typeof win.Module._voice_control_events_set === "function") {
@@ -353,6 +357,19 @@ export function evalCommand(cmd, callback) {
 
     console.log = origLog;
     console.error = origErr;
+
+    // Flush any unbuffered TTY output if Emscripten FS has pending bytes
+    if (M.FS && M.FS.streams && M.FS.streams[1] && M.FS.streams[1].tty && M.FS.streams[1].tty.output && M.FS.streams[1].tty.output.length > 0) {
+      const remainingBytes = M.FS.streams[1].tty.output;
+      let flushText = "";
+      if (typeof M.UTF8ArrayToString === "function") {
+        flushText = M.UTF8ArrayToString(remainingBytes);
+      } else {
+        flushText = String.fromCharCode.apply(null, remainingBytes);
+      }
+      if (flushText) capturedStdout.push(flushText);
+      M.FS.streams[1].tty.output = [];
+    }
 
     let logResp = "";
     if (typeof M._skred_log === "function" && typeof M.UTF8ToString === "function") {

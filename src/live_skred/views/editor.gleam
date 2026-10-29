@@ -3,6 +3,7 @@
 //// Renders the live coding blocks, AST diagnostic indicators,
 //// transport header, preset selector, and interactive REPL console.
 
+import gleam/dynamic/decode
 import gleam/float
 import gleam/int
 import gleam/list
@@ -16,6 +17,31 @@ import lustre/attribute.{class, placeholder, type_, value}
 import lustre/element.{type Element, text}
 import lustre/element/html
 import lustre/event
+
+/// Decodes Enter and Arrow navigation inside the REPL input field.
+pub fn key_down_console_decoder() -> decode.Decoder(Msg) {
+  use key <- decode.field("key", decode.string)
+  case key {
+    "Enter" -> decode.success(types.SubmitReplCommand)
+    "ArrowUp" -> decode.success(types.ReplHistoryPrev)
+    "ArrowDown" -> decode.success(types.ReplHistoryNext)
+    _ -> decode.failure(types.SubmitReplCommand, "Not handled")
+  }
+}
+
+/// Decodes Shift+Enter (eval) and Ctrl/Cmd+Enter (loop 16 ticks) in code block textarea.
+pub fn key_down_block_decoder(id: Int) -> decode.Decoder(Msg) {
+  use key <- decode.field("key", decode.string)
+  use shift_key <- decode.field("shiftKey", decode.bool)
+  use ctrl_key <- decode.field("ctrlKey", decode.bool)
+  use meta_key <- decode.field("metaKey", decode.bool)
+  case key {
+    "Enter" if shift_key -> decode.success(types.EvalBlockImmediate(id))
+    "Enter" if ctrl_key || meta_key ->
+      decode.success(types.EvalBlockQuantized(id, 16.0))
+    _ -> decode.failure(types.EvalBlockImmediate(id), "Not handled")
+  }
+}
 
 /// Renders the top transport control bar.
 pub fn view_transport_bar(model: Model) -> Element(Msg) {
@@ -185,9 +211,16 @@ pub fn view_code_block(block: CodeBlock, selected_id: Int) -> Element(Msg) {
           html.button(
             [
               class("btn btn-sm btn-loop"),
+              event.on_click(types.EvalBlockQuantized(block.id, 16.0)),
+            ],
+            [text("🔁 Loop ~16 (1 Bar)")],
+          ),
+          html.button(
+            [
+              class("btn btn-sm btn-loop"),
               event.on_click(types.EvalBlockQuantized(block.id, 4.0)),
             ],
-            [text("🔁 Loop ~4")],
+            [text("🔁 Loop ~4 (1 Beat)")],
           ),
           html.button(
             [
@@ -218,6 +251,7 @@ pub fn view_code_block(block: CodeBlock, selected_id: Int) -> Element(Msg) {
           rows(5),
           value(block.code),
           event.on_input(types.UpdateBlockCode(block.id, _)),
+          event.on("keydown", key_down_block_decoder(block.id)),
         ],
         block.code,
       ),
@@ -247,19 +281,58 @@ fn rows(n: Int) -> attribute.Attribute(a) {
   attribute.attribute("rows", int.to_string(n))
 }
 
+fn quick_diag_btn(label: String, cmd: String, tooltip: String) -> Element(Msg) {
+  html.button(
+    [
+      class("btn btn-xs btn-diag"),
+      attribute.attribute("title", tooltip),
+      event.on_click(types.ExecuteReplCommand(cmd)),
+    ],
+    [text(label)],
+  )
+}
+
 /// Renders the interactive REPL bar at the bottom.
 pub fn view_repl_bar(model: Model) -> Element(Msg) {
   html.footer([class("repl-bar")], [
+    // Diagnostic Toolbar
+    html.div([class("repl-toolbar")], [
+      html.span([class("repl-toolbar-label")], [text("DIAGNOSTICS:")]),
+      quick_diag_btn(
+        "?? Voices",
+        "??",
+        "List all active voices and frequencies",
+      ),
+      quick_diag_btn(
+        "/s 2 Audio",
+        "/s 2",
+        "Show audio engine status & voice pool",
+      ),
+      quick_diag_btn(
+        "\\ Details",
+        "\\",
+        "Show detailed parameters for current voice",
+      ),
+      quick_diag_btn("?ws Waves", "?ws", "List wavetables (drum samples 82-99)"),
+      quick_diag_btn("?S Streams", "?S", "List array stream buffers"),
+      quick_diag_btn(
+        "GS Status",
+        "GS",
+        "Show global system, tempo, volume status",
+      ),
+      quick_diag_btn("⏹ S-1 Stop", "S-1", "Silence and reset all voices"),
+    ]),
+
     // Output Logs
     html.div([class("repl-logs")], [
       html.div(
         [class("repl-logs-inner")],
         list.map(model.repl.logs, fn(log) {
-          html.div(
+          html.pre(
             [
               class(case log.is_error {
-                True -> "repl-log-line error"
-                False -> "repl-log-line"
+                True -> "repl-log-pre error"
+                False -> "repl-log-pre"
               }),
             ],
             [text(log.text)],
@@ -273,9 +346,12 @@ pub fn view_repl_bar(model: Model) -> Element(Msg) {
       html.span([class("repl-prompt")], [text("skred>")]),
       html.input([
         class("repl-input"),
-        placeholder("Enter Skode command (e.g. v0 n60 l1 or ?v for status)..."),
+        placeholder(
+          "Type Skode command (e.g. ?? for voices, /s 2 for engine, v0 w82 n69 l1) and press Enter...",
+        ),
         value(model.repl.input),
         event.on_input(types.UpdateReplInput),
+        event.on("keydown", key_down_console_decoder()),
       ]),
       html.button(
         [

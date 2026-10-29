@@ -7,6 +7,8 @@ import gleam/float
 import gleam/int
 import gleam/list
 import gleam/option.{None, Some}
+import gleam/result
+import gleam/string
 import live_skred/clock
 import live_skred/presets
 import live_skred/skred
@@ -57,7 +59,7 @@ pub fn init(_) -> #(Model, Effect(Msg)) {
       repl: ReplState(input: "", history: [], history_index: -1, logs: [
         ConsoleLog(
           id: "init",
-          text: "Welcome to live-skred! Press Shift+Enter to eval, Ctrl+Enter to loop, or Esc for panic.",
+          text: "live-skred initialized.\n• Press ▶ PLAY to run the quantized clock.\n• Built-in drums: w82=kick, w84=hat, w86=clap, w96=cowbell at f440/n69.\n• Defers (+0.5, +1.0) schedule tempo-relative beats; Shift+Enter evals block.\n• Use diagnostic buttons below or click any orbit voice to inspect engine status.",
           is_error: False,
         ),
       ]),
@@ -65,7 +67,7 @@ pub fn init(_) -> #(Model, Effect(Msg)) {
       streams: [],
       clock: QuantizedClock(
         bpm: 120.0,
-        is_running: True,
+        is_running: False,
         tick_count: 0,
         quantum_ticks: 4,
       ),
@@ -238,7 +240,7 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
             })
           #(
             Model(..model, blocks: updated_blocks),
-            skred.send_command(block.code),
+            skred.eval_command_effect(block.code),
           )
         }
         _ -> #(model, effect.none())
@@ -262,7 +264,7 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
             })
           #(
             Model(..model, blocks: updated_blocks),
-            skred.send_command(block.code),
+            skred.eval_command_effect(block.code),
           )
         }
         _ -> #(model, effect.none())
@@ -298,7 +300,7 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
         CodeBlock(
           id: next_id,
           name: "Block " <> int.to_string(next_id + 1),
-          code: "# New block\nv0 n60 l1 ; +0.25 l0",
+          code: "# New block\nv0 w82 f440 a3 B0 l1 ; +0.5 v0 l1",
           status: Ready,
           active_pulse: False,
           last_error: None,
@@ -319,11 +321,11 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
     }
 
     types.SubmitReplCommand -> {
-      let cmd = model.repl.input
+      let cmd = string.trim(model.repl.input)
       case cmd != "" {
         True -> {
           let updated_repl =
-            ReplState(..model.repl, input: "", history: [
+            ReplState(..model.repl, input: "", history_index: -1, history: [
               cmd,
               ..model.repl.history
             ])
@@ -333,14 +335,72 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
       }
     }
 
-    types.ReplHistoryPrev -> #(model, effect.none())
-    types.ReplHistoryNext -> #(model, effect.none())
+    types.ExecuteReplCommand(cmd) -> {
+      let updated_repl =
+        ReplState(..model.repl, history_index: -1, history: [
+          cmd,
+          ..model.repl.history
+        ])
+      #(Model(..model, repl: updated_repl), skred.eval_command_effect(cmd))
+    }
+
+    types.ReplHistoryPrev -> {
+      let count = list.length(model.repl.history)
+      let next_index = model.repl.history_index + 1
+      case next_index < count {
+        True -> {
+          let item =
+            model.repl.history
+            |> list.drop(next_index)
+            |> list.first
+            |> result.unwrap(model.repl.input)
+          let updated_repl =
+            ReplState(..model.repl, input: item, history_index: next_index)
+          #(Model(..model, repl: updated_repl), effect.none())
+        }
+        False -> #(model, effect.none())
+      }
+    }
+
+    types.ReplHistoryNext -> {
+      let next_index = model.repl.history_index - 1
+      case next_index >= 0 {
+        True -> {
+          let item =
+            model.repl.history
+            |> list.drop(next_index)
+            |> list.first
+            |> result.unwrap("")
+          let updated_repl =
+            ReplState(..model.repl, input: item, history_index: next_index)
+          #(Model(..model, repl: updated_repl), effect.none())
+        }
+        False -> {
+          let updated_repl =
+            ReplState(..model.repl, input: "", history_index: -1)
+          #(Model(..model, repl: updated_repl), effect.none())
+        }
+      }
+    }
 
     types.ConsoleResultReceived(cmd, ret, stdout) -> {
+      let formatted_text = case stdout {
+        "" ->
+          case ret == 0 {
+            True -> "> " <> cmd <> " -> OK"
+            False ->
+              "> "
+              <> cmd
+              <> " -> Error (exit code "
+              <> int.to_string(ret)
+              <> ")"
+          }
+        _ -> "> " <> cmd <> "\n" <> stdout
+      }
       let log =
         ConsoleLog(
-          id: int.to_string(model.clock.tick_count),
-          text: cmd <> " -> " <> stdout,
+          id: int.to_string(model.clock.tick_count) <> "_" <> cmd,
+          text: formatted_text,
           is_error: ret != 0,
         )
       let new_logs = list.take([log, ..model.repl.logs], 50)

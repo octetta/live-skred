@@ -6,10 +6,11 @@
 import gleam/float
 import gleam/int
 import gleam/list
-import live_skred/types.{type VoiceNode}
+import live_skred/types.{type Msg, type VoiceNode}
 import lustre/attribute.{class}
 import lustre/element.{type Element}
 import lustre/element/svg
+import lustre/event
 
 const center_x = 200.0
 
@@ -85,8 +86,8 @@ fn voice_color(voice_id: Int, is_active: Bool) -> String {
   }
 }
 
-/// Renders a single voice node.
-fn render_voice_node(node: VoiceNode) -> Element(a) {
+/// Renders a single voice node. Clicking inspects its parameters in the REPL.
+fn render_voice_node(node: VoiceNode) -> Element(Msg) {
   let #(cx, cy) = voice_coordinates(node.id)
   let color = voice_color(node.id, node.active)
   let base_radius = case node.active {
@@ -98,52 +99,61 @@ fn render_voice_node(node: VoiceNode) -> Element(a) {
     False -> "0.35"
   }
 
-  svg.g([class("voice-node")], [
-    // Outer glow halo if active
-    case node.active {
-      True ->
-        svg.circle([
-          attribute.attribute("cx", float.to_string(cx)),
-          attribute.attribute("cy", float.to_string(cy)),
-          attribute.attribute("r", float.to_string(base_radius +. 8.0)),
-          attribute.attribute("fill", "none"),
-          attribute.attribute("stroke", color),
-          attribute.attribute("stroke-width", "2"),
-          attribute.attribute("opacity", "0.6"),
-          class("pulse-halo"),
-        ])
-      False -> svg.g([], [])
-    },
-    // Main circular node
-    svg.circle([
-      attribute.attribute("cx", float.to_string(cx)),
-      attribute.attribute("cy", float.to_string(cy)),
-      attribute.attribute("r", float.to_string(base_radius)),
-      attribute.attribute("fill", color),
-      attribute.attribute("opacity", opacity_str),
-      attribute.attribute("stroke", "#ffffff"),
-      attribute.attribute("stroke-width", case node.active {
-        True -> "2"
-        False -> "1"
-      }),
-      class("node-circle"),
-    ]),
-    // Voice label text (v0, v1, etc.)
-    svg.text(
-      [
-        attribute.attribute("x", float.to_string(cx)),
-        attribute.attribute("y", float.to_string(cy +. 4.0)),
-        attribute.attribute("text-anchor", "middle"),
-        attribute.attribute("font-size", "10px"),
-        attribute.attribute("font-weight", "bold"),
-        attribute.attribute("fill", case node.active {
-          True -> "#0d1117"
-          False -> "#c9d1d9"
+  svg.g(
+    [
+      class("voice-node clickable"),
+      attribute.attribute("cursor", "pointer"),
+      event.on_click(types.ExecuteReplCommand(
+        "v" <> int.to_string(node.id) <> " \\",
+      )),
+    ],
+    [
+      // Outer glow halo if active
+      case node.active {
+        True ->
+          svg.circle([
+            attribute.attribute("cx", float.to_string(cx)),
+            attribute.attribute("cy", float.to_string(cy)),
+            attribute.attribute("r", float.to_string(base_radius +. 8.0)),
+            attribute.attribute("fill", "none"),
+            attribute.attribute("stroke", color),
+            attribute.attribute("stroke-width", "2"),
+            attribute.attribute("opacity", "0.6"),
+            class("pulse-halo"),
+          ])
+        False -> svg.g([], [])
+      },
+      // Main circular node
+      svg.circle([
+        attribute.attribute("cx", float.to_string(cx)),
+        attribute.attribute("cy", float.to_string(cy)),
+        attribute.attribute("r", float.to_string(base_radius)),
+        attribute.attribute("fill", color),
+        attribute.attribute("opacity", opacity_str),
+        attribute.attribute("stroke", "#ffffff"),
+        attribute.attribute("stroke-width", case node.active {
+          True -> "2"
+          False -> "1"
         }),
-      ],
-      "v" <> int.to_string(node.id),
-    ),
-  ])
+        class("node-circle"),
+      ]),
+      // Voice label text (v0, v1, etc.)
+      svg.text(
+        [
+          attribute.attribute("x", float.to_string(cx)),
+          attribute.attribute("y", float.to_string(cy +. 4.0)),
+          attribute.attribute("text-anchor", "middle"),
+          attribute.attribute("font-size", "10px"),
+          attribute.attribute("font-weight", "bold"),
+          attribute.attribute("fill", case node.active {
+            True -> "#0d1117"
+            False -> "#c9d1d9"
+          }),
+        ],
+        "v" <> int.to_string(node.id),
+      ),
+    ],
+  )
 }
 
 /// Renders the complete Orbital Voice Constellation SVG widget.
@@ -151,7 +161,7 @@ pub fn view_constellation(
   voices: List(VoiceNode),
   active_count: Int,
   master_db: Float,
-) -> Element(a) {
+) -> Element(Msg) {
   svg.svg(
     [
       attribute.attribute("viewBox", "0 0 400 400"),

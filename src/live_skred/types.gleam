@@ -129,6 +129,7 @@ pub type Msg {
   // REPL
   UpdateReplInput(input: String)
   SubmitReplCommand
+  ExecuteReplCommand(command: String)
   ReplHistoryPrev
   ReplHistoryNext
   ConsoleResultReceived(cmd: String, ret: Int, stdout: String)
