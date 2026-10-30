@@ -1,0 +1,44 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use IO::Socket::INET;
+
+# skred-send: Pipe or send Skode commands to a running Skred daemon via UDP
+# Usage:
+#   echo "v0 w82 a0 l1 T" | skred-send
+#   skred-send "v0 w82 a0 l1 T"
+#   skred-send -p 60440 "v0 w82 a0 l1 T"
+
+my $port = $ENV{SKRED_PORT} || 60440;
+my $host = $ENV{SKRED_HOST} || '127.0.0.1';
+
+# Handle optional -p <port> or -h <host>
+while (@ARGV && $ARGV[0] =~ /^-/) {
+    my $flag = shift @ARGV;
+    if ($flag eq '-p' && @ARGV) {
+        $port = shift @ARGV;
+    } elsif ($flag eq '-h' && @ARGV) {
+        $host = shift @ARGV;
+    }
+}
+
+my $socket = IO::Socket::INET->new(
+    PeerAddr => $host,
+    PeerPort => $port,
+    Proto    => 'udp',
+    Timeout  => 1
+) or die "Error: Cannot connect UDP socket to $host:$port: $!\n";
+
+my $payload = "";
+if (@ARGV) {
+    $payload = join(" ", @ARGV);
+} else {
+    local $/;
+    $payload = <STDIN>;
+}
+
+if (defined $payload && length($payload) > 0) {
+    # Strip carriage returns if present
+    $payload =~ s/\r//g;
+    $socket->send($payload);
+}

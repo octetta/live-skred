@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# skred-daemon: Run headless mini-skred listening on UDP port 60440
+PORT=${SKRED_PORT:-60440}
+VOICES=${SKRED_VOICES:-32}
+
+echo "Starting Skred daemon on UDP port $PORT with $VOICES voices..."
+exec mini-skred -n -p"$PORT" -v"$VOICES" "$@"

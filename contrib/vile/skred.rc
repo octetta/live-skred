@@ -1,0 +1,50 @@
+; ==============================================================================
+; Skred Live Coding Integration for Vile
+; Location: ~/.vile/skred.rc
+; Load in ~/.vilerc via:
+;   source ~/.vile/skred.rc
+; ==============================================================================
+
+; ------------------------------------------------------------------------------
+; 1. Embedded Perl Mode (if vile was compiled with --with-perl)
+; ------------------------------------------------------------------------------
+~if &sin $cfgopts "perl"
+    perl "use lib '$ENV{HOME}/.vile'"
+    perl "use VileSkred"
+    bind-key perl-skred-line ^X-e
+    bind-key perl-skred-block ^X-b
+    bind-key perl-skred-panic ^X-p
+~else
+
+; ------------------------------------------------------------------------------
+; 2. Native Pipe Mode (Standard vile using external skred-send)
+; ------------------------------------------------------------------------------
+store-procedure skred-eval-line "Send current line to Skred daemon"
+    .,.w !skred-send
+    write-message "Skred: evaluated line"
+~endm
+
+store-procedure skred-eval-file "Send entire buffer to Skred daemon"
+    1,$w !skred-send
+    write-message "Skred: evaluated file"
+~endm
+
+store-procedure skred-panic "Silence all Skred voices"
+    !skred-send "*l0"
+    write-message "Skred: PANIC (*l0)"
+~endm
+
+; Key bindings:
+;   ^X-e  : Evaluate current line
+;   ^X-a  : Evaluate entire file
+;   ^X-p  : Panic (stop all sound)
+bind-key skred-eval-line ^X-e
+bind-key skred-eval-file ^X-a
+bind-key skred-panic ^X-p
+
+; Leader mappings (in normal mode, type \e to eval line, \s to eval file, \p to panic):
+map \e :.,.w !skred-send<CR>
+map \s :1,$w !skred-send<CR>
+map \p :!skred-send "*l0"<CR>
+
+~endif

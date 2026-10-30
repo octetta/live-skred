@@ -58,6 +58,13 @@ make build    # Build production bundle to dist/
 
 ---
 
+## Next-Gen Live Coding & Vile Integration
+
+* **[MANIFESTO.md](MANIFESTO.md)**: The Acme / Oberon Live-Coding Workstation Blueprint for Live Skred v2.
+* **[contrib/vile/](contrib/vile/)**: Terminal live-coding integration for the classic `vile` (VI Like Emacs) text editor, communicating with a headless `mini-skred` daemon via UDP.
+
+---
+
 ## Live Coding Quick Cheatsheet
 
 ```skode
