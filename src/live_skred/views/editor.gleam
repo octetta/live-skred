@@ -176,6 +176,15 @@ pub fn view_transport_bar(model: Model) -> Element(Msg) {
         ),
       ]),
 
+      // Layout Switcher
+      html.button(
+        [
+          class("btn btn-sm btn-outline"),
+          event.on_click(types.SetLayoutMode(types.AcmeWorkstation)),
+        ],
+        [text("🔲 ACME V2")],
+      ),
+
       // Emergency Panic Button
       html.button(
         [class("btn btn-danger panic-btn"), event.on_click(types.PanicStop)],

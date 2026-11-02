@@ -18,6 +18,7 @@ import live_skred/types.{
   type Model, type Msg, type VoiceNode, CodeBlock, ConsoleLog, Looping, Model,
   Muted, OneShotting, QuantizedClock, Ready, ReplState, VoiceNode,
 }
+import live_skred/views/acme
 import live_skred/views/constellation
 import live_skred/views/editor
 import lustre
@@ -77,6 +78,9 @@ pub fn init(_) -> #(Model, Effect(Msg)) {
       master_volume_db: 0.0,
       panic_active: False,
       show_help: False,
+      layout_mode: types.AcmeWorkstation,
+      synth_code: presets.default_synth_patches(),
+      tagbar_input: "",
     )
 
   let effects =
@@ -212,6 +216,135 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
         Model(..model, master_volume_db: clamped),
         skred.set_master_volume_effect(clamped),
       )
+    }
+
+    // Acme Workstation Layout & Tag Bar Messages
+    types.SetLayoutMode(mode) -> #(
+      Model(..model, layout_mode: mode),
+      effect.none(),
+    )
+
+    types.UpdateSynthCode(code) -> #(
+      Model(..model, synth_code: code),
+      effect.none(),
+    )
+
+    types.EvalSynthCode -> {
+      let log =
+        ConsoleLog(
+          id: "synth_eval_" <> int.to_string(model.clock.tick_count),
+          text: "> [synth.sk] Evaluated Patches & Synthesis buffer",
+          is_error: False,
+        )
+      let updated_repl = ReplState(..model.repl, logs: [log, ..model.repl.logs])
+      #(
+        Model(..model, repl: updated_repl),
+        skred.eval_command_effect(model.synth_code),
+      )
+    }
+
+    types.UpdateTagBarInput(input) -> #(
+      Model(..model, tagbar_input: input),
+      effect.none(),
+    )
+
+    types.SubmitTagBarCommand -> {
+      let cmd = string.trim(model.tagbar_input)
+      case cmd != "" {
+        True -> {
+          let updated_repl =
+            ReplState(..model.repl, input: "", history_index: -1, history: [
+              cmd,
+              ..model.repl.history
+            ])
+          #(
+            Model(..model, tagbar_input: "", repl: updated_repl),
+            skred.eval_command_effect(cmd),
+          )
+        }
+        False -> #(model, effect.none())
+      }
+    }
+
+    types.AuditionCommand(cmd) -> {
+      let updated_repl =
+        ReplState(..model.repl, history_index: -1, history: [
+          cmd,
+          ..model.repl.history
+        ])
+      #(Model(..model, repl: updated_repl), skred.eval_command_effect(cmd))
+    }
+
+    types.EvalAllBlocks -> {
+      let effects =
+        list.map(model.blocks, fn(block) {
+          let #(_setup, pattern) = skode.split_setup_and_pattern(block.code)
+          let code_to_run = case pattern == "" {
+            True -> block.code
+            False -> pattern
+          }
+          skred.eval_command_effect(code_to_run)
+        })
+        |> effect.batch
+
+      let updated_blocks =
+        list.map(model.blocks, fn(b) {
+          CodeBlock(..b, active_pulse: True, status: OneShotting)
+        })
+      #(Model(..model, blocks: updated_blocks), effects)
+    }
+
+    types.LoopAllBlocks(interval_ticks) -> {
+      let updated_blocks =
+        list.map(model.blocks, fn(b) {
+          CodeBlock(..b, active_pulse: False, status: Looping(interval_ticks))
+        })
+      let #(new_clock, clock_eff) = case model.clock.is_running {
+        True -> #(model.clock, effect.none())
+        False -> {
+          let c = QuantizedClock(..model.clock, is_running: True, tick_count: 0)
+          #(c, clock.subscribe_clock(c.bpm, True, types.ClockTick))
+        }
+      }
+      let log =
+        ConsoleLog(
+          id: "loop_all_" <> int.to_string(model.clock.tick_count),
+          text: "> Armed ALL tracks for quantized loop (~"
+            <> float.to_string(interval_ticks)
+            <> " ticks)",
+          is_error: False,
+        )
+      let updated_repl = ReplState(..model.repl, logs: [log, ..model.repl.logs])
+      #(
+        Model(
+          ..model,
+          blocks: updated_blocks,
+          clock: new_clock,
+          repl: updated_repl,
+        ),
+        clock_eff,
+      )
+    }
+
+    types.StopAllBlocks -> {
+      let updated_blocks =
+        list.map(model.blocks, fn(b) { CodeBlock(..b, status: Ready) })
+      let log =
+        ConsoleLog(
+          id: "stop_all_" <> int.to_string(model.clock.tick_count),
+          text: "> Stopped all looping tracks",
+          is_error: False,
+        )
+      let updated_repl = ReplState(..model.repl, logs: [log, ..model.repl.logs])
+      #(
+        Model(..model, blocks: updated_blocks, repl: updated_repl),
+        skred.panic_effect(),
+      )
+    }
+
+    types.ClearMonitorLogs -> {
+      let updated_repl = ReplState(..model.repl, logs: [])
+      #(Model(..model, repl: updated_repl), effect.none())
     }
 
     types.SelectBlock(id) -> #(
@@ -462,7 +595,12 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
 
     types.LoadPreset(preset) -> {
       #(
-        Model(..model, blocks: preset.blocks, selected_block_id: 0),
+        Model(
+          ..model,
+          blocks: preset.blocks,
+          selected_block_id: 0,
+          synth_code: presets.default_synth_patches(),
+        ),
         skred.panic_effect(),
       )
     }
@@ -484,6 +622,13 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
 }
 
 pub fn view(model: Model) -> Element(Msg) {
+  case model.layout_mode {
+    types.AcmeWorkstation -> acme.view_acme_workstation(model)
+    types.CardsView -> view_cards_layout(model)
+  }
+}
+
+fn view_cards_layout(model: Model) -> Element(Msg) {
   let active_voices_count = list.count(model.voices, fn(v) { v.active })
 
   html.div([class("live-skred-app")], [

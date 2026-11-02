@@ -99,7 +99,75 @@ pub fn ambient_ksynth_set() -> PresetSet {
   )
 }
 
+/// 80s Electro-Funk starter set with 808 cowbell and snappy claps.
+pub fn electro_funk_set() -> PresetSet {
+  PresetSet(
+    name: "80s Electro Funk",
+    description: "Syncopated beat with 808 cowbells and snappy claps",
+    blocks: [
+      CodeBlock(
+        id: 0,
+        name: "01: Syncopated Kick (w82)",
+        code: "# Setup: Voice 0, 808 Kick at f440, +3dB, one-shot
+v0 w82 f440 a3 B0
+---
+# Pattern: Syncopated electro kick
+l1 ; +0.75 v0 l1 ; +1.5 v0 l1 ; +2.5 v0 l1",
+        status: Ready,
+        active_pulse: False,
+        last_error: None,
+      ),
+      CodeBlock(
+        id: 1,
+        name: "02: Snare & Clap Layer (w83 + w86)",
+        code: "# Setup: Voice 1 Snare & Voice 2 Handclap
+v1 w83 f440 a0 B0 ; v2 w86 f440 a-1 B0
+---
+# Pattern: Backbeats on 2 and 4
++1.0 v1 l1 v2 l1 ; +3.0 v1 l1 v2 l1",
+        status: Ready,
+        active_pulse: False,
+        last_error: None,
+      ),
+      CodeBlock(
+        id: 2,
+        name: "03: Cowbell Groove (w96)",
+        code: "# Setup: Voice 5 808 Cowbell
+v5 w96 B0 a-2 f440
+---
+# Pattern: Tuned cowbell accents
+l1 ; +0.5 v5 f520 l1 ; +1.25 v5 f440 l1 ; +2.0 v5 f660 l1",
+        status: Ready,
+        active_pulse: False,
+        last_error: None,
+      ),
+    ],
+  )
+}
+
+/// Default synthesis and physical modeling patches for Column 0 (synth.sk).
+pub fn default_synth_patches() -> String {
+  "# Patches & Synthesis (synth.sk)
+## 808 Kick Model (300ms)
+v0 w82 f440 a3 B0 p0.0
+
+## 909 Closed & Open Hats
+v1 w84 f440 a-3 B0 p-0.3 ;
+v4 w85 f440 a-3 B0 p-0.3
+
+## Handclap & 808 Cowbell
+v2 w86 f440 a-1 B0 p0.3 ;
+v5 w96 f440 a-2 B0 p0.4
+
+## Acid 303 Filter Bass
+v3 w15 a-2 f800 q3.5 t0,0.22,0,0 B0 p0.0
+
+## Ambient Waveguide Plucks
+v6 w15 p-0.6 a-4 t0,0.3,0,0 B0 ;
+v7 w15 p0.6 a-4 t0,0.3,0,0 B0"
+}
+
 /// All available presets.
 pub fn all_presets() -> List(PresetSet) {
-  [default_starter_set(), ambient_ksynth_set()]
+  [default_starter_set(), ambient_ksynth_set(), electro_funk_set()]
 }

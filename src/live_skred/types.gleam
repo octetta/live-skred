@@ -92,6 +92,12 @@ pub type PresetSet {
   PresetSet(name: String, description: String, blocks: List(CodeBlock))
 }
 
+/// Workstation UI layout view mode.
+pub type LayoutMode {
+  AcmeWorkstation
+  CardsView
+}
+
 /// Root Model for the Lustre Live-Skred application.
 pub type Model {
   Model(
@@ -105,6 +111,9 @@ pub type Model {
     master_volume_db: Float,
     panic_active: Bool,
     show_help: Bool,
+    layout_mode: LayoutMode,
+    synth_code: String,
+    tagbar_input: String,
   )
 }
 
@@ -117,6 +126,18 @@ pub type Msg {
   SetBpm(bpm: Float)
   SetMasterVolume(db: Float)
   ToggleHelp
+
+  // Acme Workstation Layout & Tag Bar
+  SetLayoutMode(mode: LayoutMode)
+  UpdateSynthCode(code: String)
+  EvalSynthCode
+  UpdateTagBarInput(input: String)
+  SubmitTagBarCommand
+  AuditionCommand(command: String)
+  EvalAllBlocks
+  LoopAllBlocks(interval_ticks: Float)
+  StopAllBlocks
+  ClearMonitorLogs
 
   // Block Editing & Execution
   SelectBlock(id: Int)

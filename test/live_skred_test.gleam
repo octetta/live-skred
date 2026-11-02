@@ -35,6 +35,14 @@ pub fn preset_blocks_parse_cleanly_test() {
   let ambient = presets.ambient_ksynth_set()
   list_all_blocks_valid(ambient.blocks)
   |> should.equal(True)
+
+  let electro = presets.electro_funk_set()
+  list_all_blocks_valid(electro.blocks)
+  |> should.equal(True)
+
+  // Verify synth patches parse as valid Skode
+  let synth_code = presets.default_synth_patches()
+  let assert Ok(_) = skode.parse(synth_code)
 }
 
 fn list_all_blocks_valid(blocks: List(CodeBlock)) -> Bool {
